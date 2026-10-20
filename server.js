@@ -416,6 +416,29 @@ app.post("/api/assistant", (req, res) => {
   res.json({ reply });
 });
 
+app.delete("/api/tasks/:id", (req, res) => {
+  try {
+    const taskId = Number(req.params.id);
+
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+      return res.status(400).json({ error: "Invalid task ID." });
+    }
+
+    const result = db
+      .prepare("DELETE FROM tasks WHERE id = ?")
+      .run(taskId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Task not found." });
+    }
+
+    res.json({ message: "Task deleted successfully." });
+  } catch (error) {
+    console.error("Failed to delete task:", error);
+    res.status(500).json({ error: "Failed to delete task." });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`LifeAdmin is running at http://localhost:${PORT}`);
 });
