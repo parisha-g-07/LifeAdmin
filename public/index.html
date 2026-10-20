@@ -1,0 +1,745 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LifeAdmin — Deadline Guardian</title>
+
+  
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #4255d4;
+      --primary-hover: #3345b5;
+      --background: #f5f7fc;
+      --surface: #ffffff;
+      --text: #202638;
+      --muted: #687084;
+      --border: #e3e7f0;
+      --danger: #b42318;
+      --radius: 16px;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 18px;
+      font-family: Arial, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    main {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 40px);
+      letter-spacing: -1.2px;
+      font-weight: 750;
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      font-size: 20px;
+      letter-spacing: -0.3px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 8px 0 30px;
+      font-size: 16px;
+    }
+
+    .panel {
+      background: var(--surface);
+      padding: 26px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 5px 20px rgba(32, 38, 56, 0.04);
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      margin-top: 4px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      min-height: 44px;
+      padding: 12px 14px;
+      border: 1px solid #d6dbe7;
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    input,
+    select {
+      background: #fff;
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(66, 85, 212, 0.13);
+    }
+
+    button {
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    button:active {
+      transform: scale(0.99);
+    }
+
+    button:focus-visible {
+      outline: 3px solid rgba(66, 85, 212, 0.3);
+      outline-offset: 2px;
+    }
+
+    #message {
+      margin: 12px 0 0;
+      color: var(--danger);
+      font-size: 14px;
+    }
+
+    #dashboard {
+      margin-bottom: 28px;
+    }
+
+    #dashboard h2 {
+      margin-bottom: 14px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 0;
+    }
+
+    .summary-card {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: 0 3px 12px rgba(32, 38, 56, 0.03);
+    }
+
+    .summary-card h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .summary-card p {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.2;
+      font-weight: 750;
+    }
+
+    /* Highlight overdue count without changing its functionality. */
+    .summary-card:first-child p {
+      color: var(--danger);
+    }
+
+    #assistant {
+      padding: 24px;
+      margin-bottom: 24px;
+      background: #eef1ff;
+      border: 1px solid #dce2ff;
+      border-radius: var(--radius);
+    }
+
+    #assistant h2 {
+      margin-bottom: 6px;
+    }
+
+    #assistant > p {
+      color: var(--muted);
+    }
+
+    #assistant-form {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    #assistant-form button {
+      width: auto;
+      min-width: 90px;
+    }
+
+    #assistant-reply {
+      margin: 14px 0 0;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid #dce2ff;
+      border-radius: 10px;
+      color: var(--text);
+      overflow-wrap: anywhere;
+    }
+
+    #taskList {
+      color: var(--text);
+      overflow-wrap: anywhere;
+    }
+
+    .task {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .task:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .task-title {
+      margin-bottom: 7px;
+      font-size: 16px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .meta {
+      margin-bottom: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .task button {
+      width: auto;
+      min-height: 36px;
+      padding: 8px 13px;
+      margin: 3px 6px 3px 0;
+      font-size: 13px;
+    }
+
+    .completed {
+      opacity: 0.65;
+    }
+
+    .completed .task-title {
+      text-decoration: line-through;
+    }
+
+    .empty {
+      padding: 16px 0;
+      color: var(--muted);
+    }
+
+    @media (min-width: 650px) {
+      .summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 26px 12px;
+      }
+
+      .panel {
+        padding: 19px;
+      }
+
+      #assistant {
+        padding: 19px;
+      }
+
+      .summary-grid {
+        gap: 9px;
+      }
+
+      .summary-card {
+        padding: 14px;
+      }
+
+      .summary-card p {
+        font-size: 27px;
+      }
+
+      #assistant-form {
+        grid-template-columns: 1fr;
+      }
+
+      #assistant-form button {
+        width: 100%;
+      }
+    }
+  </style>
+
+</head>
+
+<body>
+  <main>
+    <h1>LifeAdmin</h1>
+    <p class="subtitle">
+      Your personal deadline guardian.
+      Never lose track of an important task.
+    </p>
+
+    <section class="panel">
+      <h2>Add a task</h2>
+
+      
+<form id="task-form">
+  <label for="title">Task name</label>
+  <input
+    id="title"
+    name="title"
+    type="text"
+    maxlength="120"
+    placeholder="e.g. Return headphones"
+    required
+  />
+
+  <label for="category">Category</label>
+  <select id="category" name="category" required>
+    <option value="">Choose a category</option>
+    <option value="Return">Return</option>
+    <option value="Warranty">Warranty</option>
+    <option value="Free trial">Free trial</option>
+    <option value="Subscription">Subscription</option>
+    <option value="Other">Other</option>
+  </select>
+
+  <label for="deadline">Deadline</label>
+  <input
+    id="deadline"
+    name="deadline"
+    type="date"
+    required
+  />
+
+  <button type="submit">Add task</button>
+</form>
+
+
+      <p id="message" role="status"></p>
+    </section>
+
+    <section id="dashboard">
+      <h2>My Overview</h2>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <h3>Overdue</h3>
+          <p id="overdue-count">0</p>
+        </div>
+
+        <div class="summary-card">
+          <h3>Due Today</h3>
+          <p id="today-count">0</p>
+        </div>
+
+        <div class="summary-card">
+          <h3>Upcoming</h3>
+          <p id="upcoming-count">0</p>
+        </div>
+
+        <div class="summary-card">
+          <h3>Completed</h3>
+          <p id="completed-count">0</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="assistant">
+      <h2>LifeAdmin Assistant</h2>
+      <p>Ask about your deadlines and tasks.</p>
+
+      <form id="assistant-form">
+        <input
+          id="assistant-message"
+          type="text"
+          placeholder="e.g. Show my overdue tasks"
+          maxlength="300"
+          required
+        />
+        <button type="submit">Ask</button>
+      </form>
+
+      <p id="assistant-reply" role="status" aria-live="polite">
+        Try asking about your deadlines.
+      </p>
+    </section>
+
+
+    <section class="panel">
+      <h2>Your tasks</h2>
+      <div id="taskList">Loading tasks...</div>
+    </section>
+  </main>
+
+  <script>
+
+    function updateDashboard(tasks) {
+      const counts = {
+        "Overdue": 0,
+        "Due today": 0,
+        "Upcoming": 0,
+        "Completed": 0
+      };
+
+      tasks.forEach((task) => {
+        const status = getTaskStatus(task);
+        counts[status]++;
+      });
+
+      document.getElementById("overdue-count").textContent =
+        counts["Overdue"];
+
+      document.getElementById("today-count").textContent =
+        counts["Due today"];
+
+      document.getElementById("upcoming-count").textContent =
+        counts["Upcoming"];
+
+      document.getElementById("completed-count").textContent =
+        counts["Completed"];
+    }
+
+    const form = document.getElementById("task-form");
+    const taskList = document.getElementById("taskList");
+    const message = document.getElementById("message");
+
+    const assistantForm = document.getElementById("assistant-form");
+    const assistantInput = document.getElementById("assistant-message");
+    const assistantReply = document.getElementById("assistant-reply");
+
+    assistantForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      assistantReply.textContent = "Thinking...";
+
+      try {
+        const response = await fetch("/api/assistant", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: assistantInput.value
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.reply || "Assistant request failed.");
+        }
+
+        assistantReply.textContent = data.reply;
+        if (data.taskId) 
+        {
+          await loadTasks();
+        }
+      } catch (error) {
+        assistantReply.textContent = error.message;
+      }
+    });
+
+
+    async function loadTasks() {
+      try {
+        const response = await fetch("/api/tasks");
+
+        if (!response.ok) {
+          throw new Error("Could not load tasks.");
+        }
+
+        const tasks = await response.json();
+        updateDashboard(tasks);
+        taskList.replaceChildren();
+
+        if (tasks.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "empty";
+          empty.textContent = "No tasks yet. Add your first task above.";
+          taskList.appendChild(empty);
+          return;
+        }
+
+        tasks.sort((a, b) => a.deadline.localeCompare(b.deadline));
+
+        for (const task of tasks) {
+          const item = document.createElement("div");
+          item.className = "task" +
+            (task.completed ? " completed" : "");
+
+          const title = document.createElement("div");
+          title.className = "task-title";
+          const status = getTaskStatus(task);
+
+          title.textContent =
+            `${task.title} | ${task.category} | Due: ${task.deadline} | Status: ${status}`;
+
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent =
+            task.category + " · Deadline: " + task.deadline;
+
+          
+          const button = document.createElement("button");
+          button.textContent = task.completed
+            ? "Reopen task"
+            : "Mark complete";
+
+          button.addEventListener("click", async () => {
+            try {
+              const response = await fetch(
+                "/api/tasks/" + task.id,
+                { method: "PATCH" }
+              );
+
+              if (!response.ok) {
+                throw new Error("Could not update task.");
+              }
+
+              await loadTasks();
+            } catch (error) {
+              message.textContent = error.message;
+            }
+          });
+
+          const editButton = document.createElement("button");
+          editButton.textContent = "Edit";
+          editButton.style.backgroundColor = "#64748b";
+          editButton.style.marginLeft = "8px";
+
+          editButton.addEventListener("click", () => {
+            // Create an editing form for this task.
+            const editForm = document.createElement("form");
+            editForm.style.marginTop = "12px";
+
+            const titleInput = document.createElement("input");
+            titleInput.type = "text";
+            titleInput.value = task.title;
+            titleInput.maxLength = 120;
+            titleInput.required = true;
+            titleInput.setAttribute("aria-label", "Task name");
+
+            const categorySelect = document.createElement("select");
+            categorySelect.setAttribute("aria-label", "Task category");
+
+            const categories = [
+              "Return",
+              "Warranty",
+              "Free trial",
+              "Subscription",
+              "Other"
+            ];
+
+            categories.forEach(category => {
+              const option = document.createElement("option");
+              option.value = category;
+              option.textContent = category;
+              categorySelect.appendChild(option);
+            });
+
+            categorySelect.value = task.category;
+
+            const deadlineInput = document.createElement("input");
+            deadlineInput.type = "date";
+            deadlineInput.value = task.deadline;
+            deadlineInput.required = true;
+            deadlineInput.setAttribute("aria-label", "Deadline");
+
+            const saveButton = document.createElement("button");
+            saveButton.type = "submit";
+            saveButton.textContent = "Save changes";
+
+            const cancelButton = document.createElement("button");
+            cancelButton.type = "button";
+            cancelButton.textContent = "Cancel";
+            cancelButton.style.backgroundColor = "#64748b";
+            cancelButton.style.marginLeft = "8px";
+
+            cancelButton.addEventListener("click", () => {
+              editForm.remove();
+            });
+
+            editForm.append(
+              titleInput,
+              categorySelect,
+              deadlineInput,
+              saveButton,
+              cancelButton
+            );
+
+            // Prevent multiple editing forms on the same task.
+            const existingForm = item.querySelector(".task-edit-form");
+            if (existingForm) {
+              existingForm.remove();
+            }
+
+            editForm.className = "task-edit-form";
+            item.appendChild(editForm);
+
+            editForm.addEventListener("submit", async event => {
+              event.preventDefault();
+
+              try {
+                const response = await fetch("/api/tasks/" + task.id, {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify({
+                    title: titleInput.value,
+                    category: categorySelect.value,
+                    deadline: deadlineInput.value
+                  })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                  throw new Error(result.error || "Could not edit task.");
+                }
+
+                message.textContent = "Task updated successfully.";
+                await loadTasks();
+              } catch (error) {
+                message.textContent = error.message;
+              }
+            });
+          });
+
+          // Delete button — separate from the completion button.
+          const deleteButton = document.createElement("button");
+          deleteButton.textContent = "Delete";
+          deleteButton.style.backgroundColor = "#dc2626";
+          deleteButton.style.marginLeft = "8px";
+
+          deleteButton.addEventListener("click", async () => {
+            const confirmed = confirm(
+              `Are you sure you want to delete "${task.title}"?`
+            );
+
+            if (!confirmed) {
+              return;
+            }
+
+            try {
+              const response = await fetch(
+                "/api/tasks/" + task.id,
+                { method: "DELETE" }
+              );
+
+              if (!response.ok) {
+                const result = await response.json();
+                throw new Error(result.error || "Could not delete task.");
+              }
+
+              message.textContent = "Task deleted successfully.";
+              await loadTasks();
+            } catch (error) {
+              message.textContent = error.message;
+            }
+          });
+
+          item.append(title, meta, button, editButton, deleteButton);
+          taskList.appendChild(item);
+
+        }
+      } catch (error) {
+        taskList.textContent = "Unable to load tasks. Check the server.";
+        message.textContent = error.message;
+      }
+    }
+
+    
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      message.textContent = "";
+
+      const task = {  
+        title: document.getElementById("title").value.trim(),
+        category: document.getElementById("category").value,
+        deadline: document.getElementById("deadline").value
+      };
+
+      try {
+        const response = await fetch("/api/tasks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(task)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || "Could not add task.");
+        }
+
+        form.reset();
+        message.textContent = "";
+        await loadTasks();
+
+      } catch (error) {
+        message.textContent = error.message;
+      }
+    });
+
+
+    function getTaskStatus(task) {
+      if (task.completed) {
+        return "Completed";
+      }
+
+      // Compare calendar dates, not exact times.
+      const today = new Date();
+      const todayString =
+        `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+      if (task.deadline < todayString) {
+        return "Overdue";
+      }
+
+      if (task.deadline === todayString) {
+        return "Due today";
+      }
+
+      return "Upcoming";
+    } 
+
+    loadTasks();
+
+  </script>
+</body>
+</html>

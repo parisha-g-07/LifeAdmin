@@ -1,0 +1,439 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeAdmin | Alexa+ Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 760px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f7fb;
+      color: #202938;
+    }
+
+    h1 { margin-bottom: 6px; }
+
+    .subtitle {
+      color: #586579;
+      margin-bottom: 24px;
+    }
+
+    #chat {
+      background: white;
+      border: 1px solid #dce2eb;
+      border-radius: 12px;
+      padding: 18px;
+      min-height: 260px;
+      margin-bottom: 16px;
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 9px;
+      margin: 10px 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .user {
+      background: #e4edff;
+      margin-left: 30px;
+    }
+
+    .assistant {
+      background: #edf0f4;
+      margin-right: 30px;
+    }
+
+    form {
+      display: flex;
+      gap: 8px;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid #c7cfdb;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 8px;
+      background: #2459c4;
+      color: white;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    button:disabled { opacity: 0.6; }
+
+    .note {
+      color: #586579;
+      font-size: 13px;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>LifeAdmin</h1>
+  <p class="subtitle">Your personal deadline assistant · MCP demo</p>
+
+  <div id="chat" aria-live="polite">
+    <div class="message assistant">
+      Hi! I can help manage your deadlines. Try “Show my tasks” or “Add a task”.
+    </div>
+  </div>
+
+  <form id="chat-form">
+    <input
+      id="message"
+      placeholder="Ask about your deadlines..."
+      maxlength="300"
+      required
+    />
+    <button id="send-button" type="submit">Send</button>
+  </form>
+
+  <p class="note">
+    Local prototype: requests are sent to your LifeAdmin MCP server.
+  </p>
+
+  <script>
+    const MCP_URL = "http://127.0.0.1:3001/mcp";
+
+    const chat = document.getElementById("chat");
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("message");
+    const sendButton = document.getElementById("send-button");
+
+    let requestId = 1;
+    let initialized = false;
+
+    function addMessage(text, type) {
+      const message = document.createElement("div");
+      message.className = `message ${type}`;
+      message.textContent = text;
+      chat.appendChild(message);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function mcpRequest(method, params = {}) {
+      const response = await fetch(MCP_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json, text/event-stream"
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: requestId++,
+          method,
+          params
+        })
+      });
+
+      const body = await response.text();
+
+      if (!response.ok) {
+        throw new Error(`MCP returned HTTP ${response.status}: ${body}`);
+      }
+
+      const data = JSON.parse(body);
+
+      if (data.error) {
+        throw new Error(data.error.message || "MCP request failed.");
+      }
+
+      return data.result;
+    }
+
+    async function initializeMcp() {
+      if (initialized) return;
+
+      await mcpRequest("initialize", {
+        protocolVersion: "2025-11-25",
+        capabilities: {},
+        clientInfo: {
+          name: "lifeadmin-browser-demo",
+          version: "1.0.0"
+        }
+      });
+
+      initialized = true;
+    }
+
+    async function callTool(name, args = {}) {
+      await initializeMcp();
+
+      return await mcpRequest("tools/call", {
+        name,
+        arguments: args
+      });
+    }
+
+    
+    function getToolText(result) {
+    const text = (result.content || [])
+        .filter(item => item.type === "text")
+        .map(item => item.text)
+        .join("\n");
+
+    if (result.isError) {
+        return text || "Something went wrong while using LifeAdmin.";
+    }
+
+    // Format task lists instead of showing raw JSON.
+    try {
+        const tasks = JSON.parse(text);
+
+        if (!Array.isArray(tasks)) {
+        return text;
+        }
+
+        if (tasks.length === 0) {
+        return "You don't have any saved tasks yet.";
+        }
+
+        const completed = tasks.filter(task => task.completed === 1).length;
+        const pending = tasks.length - completed;
+
+        const lines = tasks.map(task => {
+        const status = task.completed === 1 ? "Completed" : "Pending";
+
+        return `• ${task.title}\n  Category: ${task.category}\n  Deadline: ${task.deadline}\n  Status: ${status}`;
+        });
+
+        return `Here are your saved tasks.\n\nTotal: ${tasks.length} | Completed: ${completed} | Pending: ${pending}\n\n${lines.join("\n\n")}`;
+    } catch {
+        // If the tool returns ordinary text, display it as-is.
+        return text;
+    }
+    }
+
+
+    
+    
+    function extractDate(message) {
+        const currentYear = new Date().getFullYear();
+        const text = message.toLowerCase();
+
+        function makeValidDate(year, month, day) {
+            const date = new Date(year, month - 1, day);
+
+            if (
+                date.getFullYear() !== year ||
+                date.getMonth() !== month - 1 ||
+                date.getDate() !== day
+            ) {
+                return null;
+            }
+
+            return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        }
+
+        // Handle today, tomorrow, and the day after tomorrow.
+        // Check the longer phrase first.
+        let daysToAdd = null;
+
+        if (/\bday after tomorrow\b/.test(text)) {
+            daysToAdd = 2;
+        } else if (/\btomorrow\b/.test(text)) {
+            daysToAdd = 1;
+        } else if (/\btoday\b/.test(text)) {
+            daysToAdd = 0;
+        }
+
+        // Handle "in 3 days", "in 1 week", etc.
+        if (daysToAdd === null) {
+            const relative = text.match(
+                /\bin\s+(\d+)\s+(day|days|week|weeks)\b/
+            );
+
+            if (relative) {
+                const amount = Number(relative[1]);
+                const unit = relative[2].startsWith("week") ? 7 : 1;
+                daysToAdd = amount * unit;
+            }
+        }
+
+        if (daysToAdd !== null) {
+            const date = new Date();
+            date.setHours(12, 0, 0, 0);
+            date.setDate(date.getDate() + daysToAdd);
+
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        }
+
+        // Handle YYYY-MM-DD.
+        const iso = message.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+
+        if (iso) {
+            return makeValidDate(
+                Number(iso[1]),
+                Number(iso[2]),
+                Number(iso[3])
+            );
+        }
+
+        // Handle month names, e.g. October 24 or June 30, 2027.
+        const monthDate = message.match(
+            /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})(?:,?\s+(\d{4}))?\b/i
+        );
+
+        if (!monthDate) return null;
+
+        const monthNames = [
+            "jan", "feb", "mar", "apr", "may", "jun",
+            "jul", "aug", "sep", "oct", "nov", "dec"
+        ];
+
+        const month = monthNames.indexOf(
+            monthDate[1].slice(0, 3).toLowerCase()
+        ) + 1;
+
+        const day = Number(monthDate[2]);
+        const year = monthDate[3]
+            ? Number(monthDate[3])
+            : currentYear;
+
+        return makeValidDate(year, month, day);
+    }
+
+
+    function extractTitle(message) {
+        let title = message.trim();
+
+        // Remove dates from the title.
+        title = title
+            .replace(/\b\d{4}-\d{2}-\d{2}\b/g, "")
+            .replace(/\bday after tomorrow\b|\btomorrow\b|\btoday\b/gi, "")
+            .replace(/\bin\s+\d+\s+(?:days?|weeks?)\b/gi, "")
+            .replace(/\b(?:on|by|before|for|due)\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:,?\s+\d{4})?\b/gi, "")
+            .replace(/\b(?:on|by|before|for|due)\s+\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b/g, "");
+
+        // Remove the instruction, not the task itself.
+        title = title
+            .replace(/^(?:please\s+)?(?:add|create)\s+(?:a\s+)?(?:task\s+to\s+)?/i, "")
+            .replace(/^remind me\s+to\s+/i, "")
+            .replace(/^remember to\s+/i, "")
+            .replace(/^reminder to\s+/i, "")
+            .replace(/[.!?,]+$/g, "")
+            .trim();
+
+        // Do not create a task when no actual task was provided.
+        if (
+            !title ||
+            /^(?:remind me|remember to|reminder|me|to|on|by|before|today|tomorrow)$/i.test(title)
+        ) {
+            return "";
+        }
+
+        return title;
+    }
+
+    function inferCategory(title) {
+      const text = title.toLowerCase();
+
+      if (/\b(return|send back)\b/.test(text)) return "Return";
+      if (/\bwarranty\b/.test(text)) return "Warranty";
+      if (/\b(free trial|trial)\b/.test(text)) return "Free trial";
+      if (/\b(subscription|renewal|renew)\b/.test(text)) return "Subscription";
+
+      return "Other";
+    }
+
+    
+    async function handleMessage(message) {
+    const text = message.toLowerCase();
+
+    // Decide which task filter the user is asking for.
+    let status = null;
+
+    if (/\b(overdue|past due|late)\b/.test(text)) {
+        status = "overdue";
+    } else if (/\b(due today|today's tasks|due now)\b/.test(text)) {
+        status = "today";
+    } else if (/\b(completed|finished|done tasks)\b/.test(text)) {
+        status = "completed";
+    } else if (/\b(upcoming|coming up|future deadlines)\b/.test(text)) {
+        status = "upcoming";
+    } else if (/\b(pending|unfinished|incomplete)\b/.test(text)) {
+        status = "pending";
+    } else if (
+        /\b(show|list|view|what are|display|my tasks|all tasks)\b/.test(text) &&
+        /\b(tasks|deadlines|reminders|everything)\b/.test(text)
+    ) {
+        status = "all";
+    }
+
+    // Retrieve the requested tasks through MCP.
+    if (status !== null) {
+        const result = await callTool("list_tasks", {
+        includeCompleted: true,
+        status
+        });
+
+        return getToolText(result);
+    }
+
+    // Handle requests to create a task.
+    if (/\b(add|create|remind me|remember to)\b/.test(text)) {
+        const deadline = extractDate(message);
+
+        if (!deadline) {
+            return "I couldn't find a valid deadline. Please enter a real date, such as October 24 or 2026-10-24. Dates like June 31 are invalid.";
+        }
+
+        const title = extractTitle(message);
+
+        if (!title) {
+        return "Please tell me what task to add.";
+        }
+
+        const result = await callTool("add_task", {
+        title,
+        category: inferCategory(title),
+        deadline
+        });
+
+        return getToolText(result);
+    }
+
+    return "Try asking “Show my tasks”, “Show my overdue tasks”, or “What is due today?”";
+    }
+
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const message = input.value.trim();
+      if (!message) return;
+
+      addMessage(message, "user");
+      input.value = "";
+      sendButton.disabled = true;
+
+      try {
+        const reply = await handleMessage(message);
+        addMessage(reply, "assistant");
+      } catch (error) {
+        addMessage(
+          `I couldn't reach the MCP server. Check that it is running. Details: ${error.message}`,
+          "assistant"
+        );
+      } finally {
+        sendButton.disabled = false;
+        input.focus();
+      }
+    });
+  </script>
+</body>
+</html>
