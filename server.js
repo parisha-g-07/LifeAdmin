@@ -439,6 +439,49 @@ app.delete("/api/tasks/:id", (req, res) => {
   }
 });
 
+app.put("/api/tasks/:id", (req, res) => {
+  try {
+    const taskId = Number(req.params.id);
+    const { title, category, deadline } = req.body;
+
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+      return res.status(400).json({ error: "Invalid task ID." });
+    }
+
+    if (
+      typeof title !== "string" ||
+      !title.trim() ||
+      typeof category !== "string" ||
+      !category.trim() ||
+      typeof deadline !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(deadline)
+    ) {
+      return res.status(400).json({
+        error: "Title, category, and a valid deadline are required."
+      });
+    }
+
+    const result = db.prepare(`
+      UPDATE tasks
+      SET title = ?, category = ?, deadline = ?
+      WHERE id = ?
+    `).run(title.trim(), category.trim(), deadline, taskId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Task not found." });
+    }
+
+    const updatedTask = db.prepare(
+      "SELECT * FROM tasks WHERE id = ?"
+    ).get(taskId);
+
+    res.json(updatedTask);
+  } catch (error) {
+    console.error("Failed to update task:", error);
+    res.status(500).json({ error: "Failed to update task." });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`LifeAdmin is running at http://localhost:${PORT}`);
 });
