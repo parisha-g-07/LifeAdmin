@@ -22,7 +22,6 @@ Instead of relying on memory or scattered reminders, LifeAdmin provides a centra
 - **Frontend:** HTML, CSS, and JavaScript
 - **AI integration interface:** Model Context Protocol (MCP)
 - **MCP server:** Node.js with the `@modelcontextprotocol/sdk`
-- **Input validation:** Zod
 
 ## Project Structure
 
@@ -45,7 +44,7 @@ LifeAdmin/
 Install the following before running the project:
 
 - Node.js and npm
-- Git (optional, for cloning the repository)
+- Git 
 
 ## Installation
 
@@ -108,20 +107,6 @@ The MCP server provides task-related tools, including:
 Both the main application and MCP server access the same local SQLite database, allowing task changes to be shared between the two interfaces.
 
 The MCP server is intended for use with compatible MCP clients. A working local endpoint does not, by itself, mean that LifeAdmin is already connected to Alexa+.
-
-## Current Scope and Limitations
-
-- The project is a locally runnable prototype; public hosting is not required to run it.
-- The conversational assistant currently uses rule-based logic rather than a hosted large language model.
-- The MCP server must be connected to a compatible MCP client to provide an external AI interaction experience.
-- The SQLite database is created and maintained locally; the database file is not included in the repository.
-
-## Future Improvements
-
-- Integrate with compatible voice assistants and AI clients.
-- Add configurable reminders and notifications.
-- Support recurring deadlines and subscription renewals.
-- Improve conversational understanding and task recommendations.
 
 ## License
 
